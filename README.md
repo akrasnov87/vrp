@@ -115,6 +115,23 @@ stored in the folder where a problem definition is located.
 
 Please note, that `master` branch normally contains not yet released changes.
 
+### Для Ubuntu 22.04
+
+Предварительно удаляем старую версию `rustc`:
+
+<pre>
+sudo apt remove cargo
+sudo apt autoremove
+</pre>
+
+Выполняем `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`, что поставить `rustc` (для Ubuntu 22.04 эта версия 1.88)
+
+Проверяем `rustc --version`
+
+Запускаем сборку из корневого каталога проекта `vrp`: `cargo build --release -p vrp-cli`
+
+Результат сборки будет находиться в папке: `./target/release`
+
 # Usage
 
 ## Using from code
