@@ -210,13 +210,18 @@ where
     }
 
     /// Return nodes in arbitrary order.
-    pub fn get_nodes(&self) -> impl Iterator<Item = &Node<I, S>> + '_ {
+    pub fn iter_nodes(&self) -> impl Iterator<Item = &Node<I, S>> + '_ {
         self.nodes.values()
     }
 
     /// Iterates over coordinates and their nodes.
     pub fn iter(&self) -> impl Iterator<Item = (&Coordinate, &Node<I, S>)> {
         self.nodes.iter()
+    }
+
+    /// Iterates over coordinates and their nodes.
+    pub fn into_iter_nodes(self) -> impl Iterator<Item = (Coordinate, Node<I, S>)> {
+        self.nodes.into_iter()
     }
 
     /// Returns a total amount of nodes.
@@ -242,7 +247,7 @@ where
 
     /// Returns max unified distance of the network.
     pub fn max_unified_distance(&self) -> Float {
-        self.get_nodes().map(|node| node.unified_distance(self, 1)).max_by(|a, b| a.total_cmp(b)).unwrap_or_default()
+        self.iter_nodes().map(|node| node.unified_distance(self, 1)).max_by(|a, b| a.total_cmp(b)).unwrap_or_default()
     }
 
     /// Performs training loop multiple times.
@@ -451,7 +456,7 @@ where
     }
 
     /// Remaps internal lattice after potential changes in coordinate schema.
-    pub(super) fn remap(&mut self, node_modifier: &(dyn Fn(Coordinate, Node<I, S>) -> Node<I, S>)) {
+    pub(super) fn remap(&mut self, node_modifier: &dyn Fn(Coordinate, Node<I, S>) -> Node<I, S>) {
         let nodes = self.nodes.drain().map(|(coord, node)| node_modifier(coord, node)).collect::<Vec<_>>();
         self.nodes.extend(nodes.into_iter().map(|node| (node.coordinate, node)));
     }

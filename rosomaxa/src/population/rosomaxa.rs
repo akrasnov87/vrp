@@ -89,9 +89,9 @@ where
 
 impl<C, O, S> HeuristicPopulation for Rosomaxa<C, O, S>
 where
-    C: RosomaxaContext<Solution = S>,
-    O: HeuristicObjective<Solution = S> + Alternative,
-    S: RosomaxaSolution<Context = C>,
+    C: RosomaxaContext<Solution = S> + 'static,
+    O: HeuristicObjective<Solution = S> + Alternative + 'static,
+    S: RosomaxaSolution<Context = C> + 'static,
 {
     type Objective = O;
     type Individual = S;
@@ -177,12 +177,23 @@ where
         self.elite.ranked()
     }
 
-    fn all(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
+    fn iter(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         match &self.phase {
             RosomaxaPhases::Exploration { network, .. } => {
-                Box::new(self.elite.all().chain(network.get_nodes().flat_map(|node| node.storage.population.all())))
+                Box::new(self.elite.iter().chain(network.iter_nodes().flat_map(|node| node.storage.population.iter())))
             }
-            _ => self.elite.all(),
+            _ => self.elite.iter(),
+        }
+    }
+
+    fn into_iter(self: Box<Self>) -> Box<dyn Iterator<Item = Self::Individual>> {
+        match self.phase {
+            RosomaxaPhases::Exploration { network, .. } => {
+                Box::new(Box::new(self.elite).into_iter().chain(
+                    network.into_iter_nodes().flat_map(|(_, node)| Box::new(node.storage.population).into_iter()),
+                ))
+            }
+            _ => Box::new(self.elite).into_iter(),
         }
     }
 
@@ -309,7 +320,7 @@ where
     ) {
         network.set_learning_rate(get_learning_rate(statistics.termination_estimate));
 
-        if statistics.generation % config.rebalance_memory == 0 {
+        if statistics.generation.is_multiple_of(config.rebalance_memory) {
             // set the MSE threshold to a fraction of the maximum possible normalized distance
             let mse = network.mse();
             let threshold = 0.5 / (network.dimension() as Float).sqrt();
@@ -328,11 +339,7 @@ where
         network.smooth(external_ctx, 1, |i| i.on_update(external_ctx));
     }
 
-    fn fill_populations(
-        network: &IndividualNetwork<C, O, S>,
-        coordinates: &mut Vec<Coordinate>,
-        random: &(dyn Random),
-    ) {
+    fn fill_populations(network: &IndividualNetwork<C, O, S>, coordinates: &mut Vec<Coordinate>, random: &dyn Random) {
         coordinates.clear();
         coordinates.extend(network.iter().filter_map(|(coordinate, node)| {
             if node.storage.population.size() > 0 { Some(*coordinate) } else { None }

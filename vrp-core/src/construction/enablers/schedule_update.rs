@@ -3,6 +3,7 @@ use crate::models::OP_START_MSG;
 use crate::models::common::{Distance, Duration, Schedule, Timestamp};
 use crate::models::problem::{ActivityCost, TransportCost, TravelTime};
 use rosomaxa::prelude::Float;
+use rosomaxa::utils::UnwrapValue;
 
 custom_activity_state!(pub(crate) LatestArrival typeof Timestamp);
 custom_activity_state!(pub(crate) WaitingTime typeof Timestamp);
@@ -11,11 +12,7 @@ custom_tour_state!(pub TotalDuration typeof Duration);
 custom_tour_state!(pub(crate) LimitDuration typeof Duration);
 
 /// Updates route schedule data.
-pub fn update_route_schedule(
-    route_ctx: &mut RouteContext,
-    activity: &(dyn ActivityCost),
-    transport: &(dyn TransportCost),
-) {
+pub fn update_route_schedule(route_ctx: &mut RouteContext, activity: &dyn ActivityCost, transport: &dyn TransportCost) {
     update_schedules(route_ctx, activity, transport);
     update_states(route_ctx, activity, transport);
     update_statistics(route_ctx, transport);
@@ -24,8 +21,8 @@ pub fn update_route_schedule(
 /// Updates route departure to the new one.
 pub fn update_route_departure(
     route_ctx: &mut RouteContext,
-    activity: &(dyn ActivityCost),
-    transport: &(dyn TransportCost),
+    activity: &dyn ActivityCost,
+    transport: &dyn TransportCost,
     new_departure_time: Timestamp,
 ) {
     let start = route_ctx.route_mut().tour.get_mut(0).unwrap();
@@ -34,7 +31,7 @@ pub fn update_route_departure(
     update_route_schedule(route_ctx, activity, transport);
 }
 
-fn update_schedules(route_ctx: &mut RouteContext, activity: &(dyn ActivityCost), transport: &(dyn TransportCost)) {
+fn update_schedules(route_ctx: &mut RouteContext, activity: &dyn ActivityCost, transport: &dyn TransportCost) {
     let init = {
         let start = route_ctx.route().tour.start().unwrap();
         (start.place.location, start.schedule.departure)
@@ -45,7 +42,7 @@ fn update_schedules(route_ctx: &mut RouteContext, activity: &(dyn ActivityCost),
             let a = route_ctx.route().tour.get(activity_idx).unwrap();
             let location = a.place.location;
             let arrival = dep + transport.duration(route_ctx.route(), loc, location, TravelTime::Departure(dep));
-            let departure = activity.estimate_departure(route_ctx.route(), a, arrival);
+            let departure = activity.estimate_departure(route_ctx.route(), a, arrival).unwrap_value();
 
             (location, arrival, departure)
         };
@@ -56,7 +53,7 @@ fn update_schedules(route_ctx: &mut RouteContext, activity: &(dyn ActivityCost),
     });
 }
 
-fn update_states(route_ctx: &mut RouteContext, activity: &(dyn ActivityCost), transport: &(dyn TransportCost)) {
+fn update_states(route_ctx: &mut RouteContext, activity: &dyn ActivityCost, transport: &dyn TransportCost) {
     // update latest arrival and waiting states of non-terminate (jobs) activities
     let actor = route_ctx.route().actor.clone();
     let init = (
@@ -87,7 +84,7 @@ fn update_states(route_ctx: &mut RouteContext, activity: &(dyn ActivityCost), tr
         } else {
             let latest_departure =
                 end_time - transport.duration(route, act.place.location, prev_loc, TravelTime::Arrival(end_time));
-            activity.estimate_arrival(route, act, latest_departure)
+            activity.estimate_arrival(route, act, latest_departure).unwrap_value()
         };
         let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0.);
 
@@ -110,7 +107,7 @@ fn update_states(route_ctx: &mut RouteContext, activity: &(dyn ActivityCost), tr
     route_ctx.state_mut().set_waiting_time_states(waiting_times);
 }
 
-fn update_statistics(route_ctx: &mut RouteContext, transport: &(dyn TransportCost)) {
+fn update_statistics(route_ctx: &mut RouteContext, transport: &dyn TransportCost) {
     let (route, state) = route_ctx.as_mut();
 
     let start = route.tour.start().unwrap();

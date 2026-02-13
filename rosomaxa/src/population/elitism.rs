@@ -37,7 +37,7 @@ where
 /// Provides a way to get a new alternative objective with some probability.
 pub trait Alternative {
     /// Returns a new objective, potentially alternative one.
-    fn maybe_new(&self, random: &(dyn Random)) -> Self;
+    fn maybe_new(&self, random: &dyn Random) -> Self;
 }
 
 impl<O, S> HeuristicPopulation for Elitism<O, S>
@@ -92,8 +92,15 @@ where
         Box::new(self.individuals.iter())
     }
 
-    fn all(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
+    fn iter(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         Box::new(self.individuals.iter())
+    }
+
+    fn into_iter(self: Box<Self>) -> Box<dyn Iterator<Item = Self::Individual>>
+    where
+        Self::Individual: 'static,
+    {
+        Box::new(self.individuals.into_iter())
     }
 
     fn size(&self) -> usize {

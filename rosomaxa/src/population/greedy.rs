@@ -34,10 +34,10 @@ where
     }
 
     fn add(&mut self, individual: Self::Individual) -> bool {
-        if let Some(best_known) = &self.best_known {
-            if self.objective.total_order(best_known, &individual) != Ordering::Greater {
-                return false;
-            }
+        if let Some(best_known) = &self.best_known
+            && self.objective.total_order(best_known, &individual) != Ordering::Greater
+        {
+            return false;
         }
 
         self.best_known = Some(individual);
@@ -62,8 +62,15 @@ where
         Box::new(self.best_known.iter())
     }
 
-    fn all(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
+    fn iter(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         Box::new(self.best_known.iter())
+    }
+
+    fn into_iter(self: Box<Self>) -> Box<dyn Iterator<Item = Self::Individual>>
+    where
+        Self::Individual: 'static,
+    {
+        Box::new(self.best_known.into_iter())
     }
 
     fn size(&self) -> usize {
