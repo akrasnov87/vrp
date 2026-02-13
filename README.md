@@ -86,7 +86,6 @@ docker run -it -v $(pwd):/repo --rm vrp_solver
 Please note that the docker image is built using `musl`, not `glibc` standard library. So there might be some performance
 implications.
 
-
 ## Install from Cargo
 
 You can install vrp solver `cli` tool directly with `cargo install`:
@@ -131,6 +130,13 @@ sudo apt autoremove
 Запускаем сборку из корневого каталога проекта `vrp`: `cargo build --release -p vrp-cli`
 
 Результат сборки будет находиться в папке: `./target/release`
+
+## Обновление исходного кода
+
+<pre>
+git remote add upstream https://github.com/reinterpretcat/vrp
+git pull upstream master
+</pre>
 
 # Usage
 
