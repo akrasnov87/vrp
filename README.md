@@ -114,6 +114,24 @@ stored in the folder where a problem definition is located.
 
 Please note, that `master` branch normally contains not yet released changes.
 
+#### Добавляем в переменные окружения
+
+1. Откройте файл в редакторе:
+<pre>
+nano ~/.bashrc
+</pre>
+
+2. В конец файла добавьте строку (заменив /путь/к/вашей/папке на реальный путь):
+<pre>
+export PATH="$PATH:/путь/к/вашей/папке"
+</pre>
+
+3. Сохраните файл (Ctrl+O, затем Enter, затем Ctrl+X в nano).
+4. Примените изменения без перезагрузки:
+<pre>
+source ~/.bashrc
+</pre>
+
 ### Для Ubuntu 22.04
 
 Предварительно удаляем старую версию `rustc`:
